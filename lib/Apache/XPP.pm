@@ -1,12 +1,11 @@
 # Apache::XPP
 # -------------
-# $Revision: 1.23 $
-# $Date: 2000/09/08 22:26:44 $
+# $Revision: 1.28 $
+# $Date: 2002/01/16 22:06:46 $
 # -----------------------------------------------------------------------------
 =head1 NAME
 
-XPP (XPML Page Parser) - An embedded perl language designed to co-exist with 
-HTML
+XPP (XPML Page Parser) - An embedded perl language designed to co-exist with HTML
 
 =cut
 
@@ -25,7 +24,6 @@ package Apache::XPP;
  File::stat
  FileHandle
  HTTP::Request
- HTTP::Date
  LWP::UserAgent
 
 =cut
@@ -36,8 +34,8 @@ use vars qw( $AUTOLOAD $debug $debuglines );
 
 BEGIN {
 
-    $Apache::XPP::REVISION       = (qw$Revision: 1.23 $)[-1];
-    $Apache::XPP::VERSION        = '2.00';
+    $Apache::XPP::REVISION       = (qw$Revision: 1.28 $)[-1];
+    $Apache::XPP::VERSION        = '2.01';
 
 }
 
@@ -46,12 +44,11 @@ use Apache::XPP::PreParse;
 
 use Carp;
 use Apache();
-use Apache::Constants qw(:common);
+use Apache::Constants qw(:response);
 use File::stat;
 use FileHandle;
 use HTTP::Request;
 use LWP::UserAgent;
-use Data::Dumper;
 
 =head1 EXPORTS
 
@@ -116,9 +113,11 @@ sub handler ($$) {
 	
 	# handle things other than GET or POST gracefully here
 	unless ($r->method eq 'GET' || $r->method eq 'POST') {
-		return 403;
+		return NOT_IMPLEMENTED;
 	}
 
+	# Prevent browser caching
+	$r->no_cache(1);
 
 	# Get the file and build a new XPP object
 	warn "\nxpp: handler called" . ($debuglines ? '' : "\n") if ($debug);
@@ -130,11 +129,11 @@ sub handler ($$) {
 		};
 		if ($@) {
 			warn "Bad things happened. XPP page didn't compile: $@";
-			return 500;
+			return SERVER_ERROR;
 		}
 	} else {
 		$r->log_error("[client " . $r->get_remote_host . "] [Apache::XPP] File not accessible: " . $r->filename());
-		return 404;
+		return NOT_FOUND;
 	}
 	return OK;
 } # END method handler
@@ -297,7 +296,10 @@ sub parse {
 
 	my @codesrc;
 	{
-		local($Data::Dumper::Indent)	= 0;
+		if ($debug >= 3) {
+			eval "use Data::Dumper;";
+			local($Data::Dumper::Indent)	= 0;
+		}
 		warn "xpp: parsing source:\n<<\n$string\n>>" . ($debuglines ? '' : "\n") if ($debug);
 
 #		The regex in the while() statement below is somewhat complex. It was placed in one line for efficiency,
@@ -542,10 +544,14 @@ sub incdir {
  					$endpt = scalar(@parts) - $1;
  					$startpt = ($incdir =~ /\+$/) ? 0 : $endpt;
  				} elsif ($segment =~ /^(\d)/) {
- 					$startpt = scalar(@parts) - $1;
- 					$endpt = ($incdir =~ /\+$/) ? scalar(@parts) : $startpt;
+ 					$startpt = $1 - 1;
+ 					$endpt = ($incdir =~ /\+$/) ? $#parts : $startpt;
  				}
- 				$replacement = join('.', @parts[$startpt..$endpt]);
+				if ( ($startpt > $#parts) || ($endpt > $#parts) || ($startpt < 0) || ($endpt < 0) ) {
+					$replacement = '_';
+				} else {
+ 					$replacement = join('.', @parts[$startpt..$endpt]);
+				}
  				$incdir =~ s/\%$segment/$replacement/;
  			}
 		} else {
@@ -573,7 +579,7 @@ sub docroot {
 	$docroot		||= ref($self->r) ? $self->r->document_root : '';
 	$docroot		||= '/';
 	
-	$docroot			=~ /^([\/.-\w]*)$/;
+	$docroot			=~ /^([\/.\w-]*)$/;
 	return $1;
 } # END method docroot
 
@@ -632,7 +638,7 @@ sub xinclude {
 	$x->run( @options );
 } # END method xinclude
 
-=item C<debug> ( $debuglevel [, $debuglines ]
+=item C<debug> ( $debuglevel [, $debuglines ] )
 
 Manipulates debug level.  See $debug above.
 
@@ -731,6 +737,23 @@ __END__
 =head1 REVISION HISTORY
 
 $Log: XPP.pm,v $
+Revision 1.28  2002/01/16 22:06:46  kasei
+- Updated README to mention version 2.01
+- POD typo fix in XPP.pm
+
+Revision 1.27  2002/01/16 21:06:01  kasei
+Updated VERSION variables to 2.01
+
+Revision 1.26  2002/01/16 21:00:02  kasei
+- Added PREREQ_PM arguments to Makefile.PL
+- XPP.pm now only uses Data::Dumper if $debug >= 3 (not listed as a prereq)
+
+Revision 1.25  2000/09/23 01:22:06  dweimer
+Fixed VHostIncludeDir's, thanks david.
+
+Revision 1.24  2000/09/20 00:33:18  zhobson
+Fixed a warning in docroot(), misplaced "-" made it look like an invalid range
+
 Revision 1.23  2000/09/08 22:26:44  david
 added, changed, revised, and otherwise cleaned up a lot of POD
 cleaned up new()

@@ -21,8 +21,8 @@ use strict;
 use vars qw( $AUTOLOAD $debug $debuglines );
 
 BEGIN {
-	$Apache::XPP::Cache::Expiry::REVISION = (qw$Revision: 1.6 $)[-1];
-	$Apache::XPP::Cache::Expiry::VERSION = '2.00';
+	$Apache::XPP::Cache::Expiry::REVISION = (qw$Revision: 1.7 $)[-1];
+	$Apache::XPP::Cache::Expiry::VERSION = '2.01';
 	$debug		= undef;
 	$debuglines	= 0;
 }
@@ -57,6 +57,9 @@ __END__
 =head1 REVISION HISTORY
 
  $Log: Expiry.pm,v $
+ Revision 1.7  2002/01/16 21:06:01  kasei
+ Updated VERSION variables to 2.01
+
  Revision 1.6  2000/09/11 20:12:23  david
  Various minor code efficiency improvements.
 

@@ -1,7 +1,7 @@
 # Apache::XPP::Cache
 # --------------------
-# $Revision: 1.8 $
-# $Date: 2000/09/15 22:02:37 $
+# $Revision: 1.9 $
+# $Date: 2002/01/16 21:06:01 $
 #-----------------------------
 
 =head1 NAME
@@ -29,8 +29,8 @@ use strict;
 use vars qw( $debug $debuglines );
 
 BEGIN {
-	$Apache::XPP::Cache::REVISION       = (qw$Revision: 1.8 $)[-1];
-	$Apache::XPP::Cache::VERSION        = '2.00';
+	$Apache::XPP::Cache::REVISION       = (qw$Revision: 1.9 $)[-1];
+	$Apache::XPP::Cache::VERSION        = '2.01';
 	$debug		= undef;
 	$debuglines	= 1;
 }
@@ -194,6 +194,9 @@ __END__
 =head1 REVISION HISTORY
 
  $Log: Cache.pm,v $
+ Revision 1.9  2002/01/16 21:06:01  kasei
+ Updated VERSION variables to 2.01
+
  Revision 1.8  2000/09/15 22:02:37  dougw
  Took out $AUTOLOAD
 

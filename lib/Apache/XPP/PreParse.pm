@@ -26,15 +26,16 @@ package Apache::XPP::PreParse;
 
 use Carp;
 use strict;
-use Data::Dumper;
 use vars qw($AUTOLOAD @parsers $debug );
 
 BEGIN {
-	$Apache::XPP::PreParse::REVISION       = (qw$Revision: 1.17 $)[-1];
-	$Apache::XPP::PreParse::VERSION        = '2.00';
+	$Apache::XPP::PreParse::REVISION       = (qw$Revision: 1.19 $)[-1];
+	$Apache::XPP::PreParse::VERSION        = '2.01';
 
 	$debug		= undef;
-	@parsers	= qw( parser_xppcomment parser_xppcache parser_xppxinclude parser_print parser_appmethod parser_xppforeach);
+	@parsers	= qw( parser_xppcomment parser_xppcache parser_xppxinclude
+		parser_print parser_appmethod parser_xppforeach parser_xppshift
+		parser_xppwhile );
 }
 
 =head1 DESCRIPTION
@@ -401,8 +402,58 @@ sub parser_xppforeach {
 					};	
 	$self->dtag($text,"XPPFOREACH",$subref);
 }	
-					
 
+=item C<parser_xppwhile>
+
+Places the included block within a while block, looping on the condition
+specified in 'condition'. If the option 'counter' is specified, the number
+of loops performed will be assigned to that scalar.
+
+Ex:
+ <XPPWHILE condition="my $bar = shift @foo" counter="$count">
+  Shifted off <?= $bar ?>.<BR>
+ </XPPWHILE>
+ I looped <?= $count ?> times.
+
+=cut
+
+sub parser_xppwhile {
+	my $self = shift;
+	my $text = shift;
+	my $subref = sub {
+						my $params = shift;
+						my $data = shift;
+						my $xppstring = '<?xpp ';
+						my $counter = $params->{counter};
+						$xppstring .= "my $counter = 0;\n" if $counter;
+						$xppstring .= "while ($params->{condition}) { ";
+						$xppstring .= "\n$counter++;\n" if $counter;
+						$xppstring .= "?>\n$data\n<?xpp } ?>\n";
+						return $xppstring;
+					};	
+	$self->dtag($text,"XPPWHILE",$subref);
+}	
+
+=item C<parser_xppshift>
+
+Shifts one value off the given array (C<@_> if none is specified) and assigns
+the value to the specified scalar, scoped lexically (using C<my()>).
+
+Ex:
+ <XPPSHIFT array="@ary" as="$val">
+
+=cut
+
+sub parser_xppshift {
+   	my $self = shift;
+   	my $text = shift;
+   	$self->stag( $text, '<XPPSHIFT',
+   		[
+   			[ 'array', '<?xpp my %s = shift(%s); ?>', [ 'as', 'array' ] ],
+   			[ '<?xpp my %s = shift; ?>', [ 'as' ] ],
+   		]
+	);
+}
 
 1;
 
@@ -413,6 +464,13 @@ __END__
 =head1 REVISION HISTORY
 
 $Log: PreParse.pm,v $
+Revision 1.19  2002/01/16 21:06:01  kasei
+Updated VERSION variables to 2.01
+
+Revision 1.18  2000/09/28 20:10:59  zhobson
+- Added parser_xppwhile and the <XPPWHILE> tag
+- Added parser_xppshift and the <XPPSHIFT> tag
+
 Revision 1.17  2000/09/14 23:01:30  dougw
 Fixed stag pod.
 

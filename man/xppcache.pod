@@ -73,4 +73,14 @@ time, and FALSE if the cache is still valid.
 
 =back
 
+=head1 SEE ALSO
+
+L<Apache::XPP::Cache>,
+L<Apache::XPP::Cache::Store>,
+L<Apache::XPP::Cache::Expiry> 
+
+=head1 AUTHORS
+
+Greg Williams E<lt>greg@cnation.comE<gt>
+
 =cut

@@ -1,7 +1,7 @@
 # Apache::XPP::Cache::Store::File
 # ---------------------------------
-# $Revision: 1.7 $
-# $Date: 2000/09/13 21:00:52 $
+# $Revision: 1.9 $
+# $Date: 2002/01/16 21:06:01 $
 # -----------------------------------------------------
 
 =head1 NAME
@@ -34,8 +34,8 @@ use vars qw( @ISA $debug $debuglines );
 
 BEGIN {
 	@ISA		= qw( Apache::XPP::Cache::Store );
-	$Apache::XPP::Cache::Store::File::REVISION = (qw$Revision: 1.7 $)[-1];
-	$Apache::XPP::Cache::Store::File::VERSION = '2.00';
+	$Apache::XPP::Cache::Store::File::REVISION = (qw$Revision: 1.9 $)[-1];
+	$Apache::XPP::Cache::Store::File::VERSION = '2.01';
 	$debug		= undef;
 	$debuglines	= 1;
 }
@@ -123,7 +123,7 @@ sub cachedir {
 	my $cachedir	= ref($self->r) ? $self->r->dir_config('XPPFileCacheDir') : '/tmp/cache';
 	$cachedir = $self->r->server_root_relative($cachedir)
 		unless( $cachedir =~ /^\// );
-	$cachedir		=~ m#^([/.-\w]*)$#;
+	$cachedir		=~ m#^([/.\-\w]*)$#;
 	return $1;
 } # END method cachedir
 
@@ -203,6 +203,17 @@ __END__
 =head1 REVISION HISTORY
 
  $Log: File.pm,v $
+ Revision 1.9  2002/01/16 21:06:01  kasei
+ Updated VERSION variables to 2.01
+
+ Revision 1.8  2002/01/15 07:34:22  kasei
+ From: Pierre Phaneuf <pp@ludusdesign.com>
+ Subject: [Xpp-general] small warning fix
+ Date: Mon, 14 Jan 2002 21:51:10 -0500
+ Message-Id: <3C43991E.571FAC9E@ludusdesign.com>
+
+ Fixes regex range warning.
+
  Revision 1.7  2000/09/13 21:00:52  dougw
  Small change to line 165.
 

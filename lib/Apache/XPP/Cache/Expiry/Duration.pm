@@ -1,7 +1,7 @@
 # Apache::XPP::Cache::Expiry::Duration
 # ----------------------------------------
-# $Revision: 1.5 $
-# $Date: 2000/09/11 20:12:23 $
+# $Revision: 1.6 $
+# $Date: 2002/01/16 21:06:01 $
 #------------------------------------------------------------------
 
 =head1 NAME
@@ -29,8 +29,8 @@ use vars qw( @ISA $debug $debuglines );
 
 BEGIN {
 	@ISA		= qw( Apache::XPP::Cache::Expiry );
-	$Apache::XPP::Cache::Expiry::Duration::REVISION = (qw$Revision: 1.5 $)[-1];
-	$Apache::XPP::Cache::Expiry::Duration::VERSION = '2.00';
+	$Apache::XPP::Cache::Expiry::Duration::REVISION = (qw$Revision: 1.6 $)[-1];
+	$Apache::XPP::Cache::Expiry::Duration::VERSION = '2.01';
 	$debug		= undef;
 	$debuglines	= 1;
 }
@@ -124,6 +124,9 @@ __END__
 =head1 REVISION HISTORY
 
  $Log: Duration.pm,v $
+ Revision 1.6  2002/01/16 21:06:01  kasei
+ Updated VERSION variables to 2.01
+
  Revision 1.5  2000/09/11 20:12:23  david
  Various minor code efficiency improvements.
 

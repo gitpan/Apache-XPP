@@ -1,7 +1,7 @@
 # Apache::XPP::Cache::Store
 #----------------------------
-# $Revision: 1.5 $
-# $Date: 2000/09/11 20:12:23 $
+# $Revision: 1.6 $
+# $Date: 2002/01/16 21:06:01 $
 #---------------------------------
 
 =head1 NAME
@@ -27,8 +27,8 @@ use strict;
 use vars qw( $AUTOLOAD $debug $debuglines );
 
 BEGIN {
-	$Apache::XPP::Cache::Store::REVISION = (qw$Revision: 1.5 $)[-1];
-	$Apache::XPP::Cache::Store::Version  = '2.00';
+	$Apache::XPP::Cache::Store::REVISION = (qw$Revision: 1.6 $)[-1];
+	$Apache::XPP::Cache::Store::Version  = '2.01';
 	$debug		= undef;
 	$debuglines	= 0;
 }
@@ -63,6 +63,9 @@ __END__
 =head1 REVISION HISTORY
 
  $Log: Store.pm,v $
+ Revision 1.6  2002/01/16 21:06:01  kasei
+ Updated VERSION variables to 2.01
+
  Revision 1.5  2000/09/11 20:12:23  david
  Various minor code efficiency improvements.
 
