@@ -1,0 +1,595 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<!--last modified on Wed, Mar 1, 2000 4:32 PM-->
+<HTML>
+
+<HEAD>
+	<META HTTP-EQUIV="Content-Type" CONTENT="text/html;CHARSET=iso-8859-1">
+	<META NAME="Author" Content="Adam Pisoni">
+	<TITLE>XPP Proposed Requirements</TITLE>
+</HEAD>
+
+<BODY TEXT="#000000" BGCOLOR="#FFFFFF">
+
+<P ALIGN="CENTER"><FONT SIZE="6"><B>XPP Proposed Requirements</B></FONT><BR>
+<FONT SIZE="4">$Revision: 1.1.1.2 $ <BR>
+$Date: 2000/07/24 22:31:59 $</FONT></P>
+<P>
+<TABLE BORDER="0" CELLPADDING="0" CELLSPACING="1" WIDTH="100%" BGCOLOR="#000000">
+	<TR>
+		<TD WIDTH="100%">
+			<TABLE BORDER="0" CELLPADDING="3" CELLSPACING="1" WIDTH="100%" BGCOLOR="#FFFFFF">
+				<TR>
+					<TD WIDTH="24%" BGCOLOR="#777777">
+						<P ALIGN="CENTER"><FONT SIZE="4" COLOR="#000000"><B>Requirements</B></FONT>
+					</TD>
+					<TD WIDTH="76%" BGCOLOR="#777777">
+						<P ALIGN="CENTER"><FONT SIZE="4" COLOR="#000000"><B>Assertions &amp; Questions</B></FONT>
+					</TD>
+				</TR>
+				<TR>
+					<TD COLSPAN="2" BGCOLOR="#BBBBBB">
+						<P ALIGN="CENTER"><B>Parser</B>
+					</TD>
+				</TR>
+				<TR>
+					<TD WIDTH="24%">XML Support</TD>
+					<TD WIDTH="76%">
+						<P><B>Assertions:</B>
+						<UL>
+							<LI>We can not use the XML::Parser module to parse XML pag<FONT COLOR="#000000">es.
+							The current XML parsers for perl (based on XML::Parser which uses the C expat library)
+							will not parse the HTML in XPML pages, making it useless as the core parser of XPP.
+							</FONT>
+							<LI><FONT COLOR="#000000">The standard syntax will look like: &lt;XPP TAG KEY1=&quot;VALUE&quot;
+							KEY2=&quot;VALUE&quot; /&gt; </FONT>
+							<LI><FONT COLOR="#000000">For just parsing perl we'll use &lt;XPP&gt;PERL&lt;/XPP&gt;</FONT>
+							<LI><FONT COLOR="#000000">For printing we'll use &lt;XPR&gt; PRINT &lt;/XPR&gt;</FONT>
+						</UL>
+						<P><B>Questions:</B>
+						<UL>
+							<LI>If we can not use the official XML parser, we should make sure our parser code
+							is abstracted so that we could one day rewrite it in C or use the XML parser later.
+							<BR>
+							<FONT COLOR="#880000">Writing the parser in C is an option, but using an XML parser
+							doesn't seem likely. An XML parser will always have a problem with HTML that is used
+							in XPML pages. </FONT>
+						</UL>
+					</TD>
+				</TR>
+				<TR>
+					<TD WIDTH="24%">The XPP Parser must be very fast.</TD>
+					<TD WIDTH="76%"><B>Assertions:<BR>
+						</B>The speed of execution is more imporatnt then the speed of parsing.</TD>
+				</TR>
+				<TR>
+					<TD WIDTH="24%">XPML Compilation at the Apache Parent Level</TD>
+					<TD WIDTH="76%">
+						<P><B>Assertions:</B>
+						<UL>
+							<LI>There should be a way to tell XPP when it is loaded into Apache, what pages is
+							should compile. These can then be 'shared' by all subprocs.
+							<LI>All new features should be compatable with this approach. For instance, pre-compiling
+							of code doesn't work (remember &lt;?= ?&gt;
+						</UL>
+					</TD>
+				</TR>
+				<TR>
+					<TD WIDTH="24%">XPML Pages should be cached in memory</TD>
+					<TD WIDTH="76%">
+						<P><B>Assertions:</B>
+						<UL>
+							<LI>Each time an XPML or included XMI file is requested, XPP should check that files
+							mtime to see if it has been modified and recompile it if it has.
+							<LI>XPML pages will be cached in memory as objects that contain coderefs?
+						</UL>
+						<P><B>Questions:</B>
+					</TD>
+				</TR>
+				<TR>
+					<TD WIDTH="24%">There should be a way of turning off the 'stat'ing of files.</TD>
+					<TD WIDTH="76%">
+						<P><B>Assertions:</B>
+						<UL>
+							<LI>There should be a PerlSetVar flag to tell XPP to not check files for their modification
+							time. This will dramatically speed requests up.
+							<LI>This will require restarting the web server when changes to pages are made.
+							<LI><FONT COLOR="#000000">Sharing would increase if stating was off, because cached,
+							compiled pages would never need re-compiling, so would stay shared in the parent
+							proc. </FONT>
+						</UL>
+						<P><B>Questions:</B>
+					</TD>
+				</TR>
+				<TR>
+					<TD COLSPAN="2" BGCOLOR="#BBBBBB">
+						<P ALIGN="CENTER"><B>Includes</B>
+					</TD>
+				</TR>
+				<TR>
+					<TD WIDTH="24%">There needs to be a way of including dynamic AND static files</TD>
+					<TD WIDTH="76%">
+						<P><B>Assertions</B>
+						<UL>
+							<LI>there are xinclude (dynamic) and include (static) methods for including files.
+							<LI>Includes will be relative to the XPPincroot. <FONT COLOR="#880000"></FONT>
+							<LI><FONT COLOR="#000000">There should be the ability to include and xinclude URLs
+							as well.</FONT>
+							<LI>Included files will be in their own scope. 
+						</UL>
+						<P><B>Questions</B>
+						<UL>
+							<LI><FONT COLOR=#0005F0>How could you xinclude a URL?  An external code source (i.e., a web server which serves XMIs without parsing?)</FONT>
+						</UL>
+					</TD>
+				</TR>
+				<TR>
+					<TD WIDTH="24%">There should be a way of including files from within the web root.</TD>
+					<TD WIDTH="76%">
+						<P><B>Questions</B>
+						<UL>
+							<LI>This is currently supported, but only be letting the user type system rooted
+							paths. This seems like a security hole. A better system should be thought of.
+						</UL>
+					</TD>
+				</TR>
+				<TR>
+					<TD WIDTH="24%">There needs to be a way of passing parameters between includes.</TD>
+					<TD WIDTH="76%">
+						<P><B>Assertions</B>
+						<UL>
+							<LI>The second to Nth paramater you can pass the xinclude method will be the other
+							variables you want to pass to that template. 
+							<LI><FONT COLOR="#000000">There should be a way to force a named variable into the
+							scope of an include? This would save XPML programmers from having to shift() variables
+							into the include, allowing them to use variables that are 'already there.' </FONT>
+						</UL>
+						<P><FONT COLOR="#000000"><B>Questions</B></FONT><FONT COLOR="#3399FF"></FONT>
+					</TD>
+				</TR>
+				<TR>
+					<TD WIDTH="24%">There should be a way to include a file within the same namespace.</TD>
+					<TD WIDTH="76%">
+						<P><B>Assertions:</B>
+						<UL>
+							<LI>There should be an option of copying the code into the current page's code. Another
+							reason this wasn't done before was because there was no way of knowing when an xmi
+							had changed (in order to reload it), if the code was just copied in verbatim. <FONT
+							COLOR="#000000">Each page object could contain an array of files (or other expiry
+							means) which would invalidate the cache if <I>any</I> failed an mtime test. </FONT><B></B>
+							<LI>There should be an option of copying the code from an included file into the
+							current page's code. When the page is included (in this special way) it can be put
+							in an if block which checks that files mtime. <BR>
+							<FONT COLOR="#000000">Each page object could contain an array of files (or other
+							expiry means) which would invalidate the cache if <I>any</I> failed an mtime test.
+							</FONT><B></B>
+						</UL>
+						<P><B>Questions</B>
+						<UL>
+							<LI>Is it possible to have the code in memory only once, but be scoped to whomever
+							is calling it? <BR>
+							<FONT COLOR="#880000">Although the </FONT><FONT COLOR="#000044">no scope;</FONT><FONT
+							COLOR="#880000"> pragma has been suggested on p5p (a cool feature, I might add!),
+							there is no way that I know of to do this currently. </FONT>
+							<LI>Even if the above isn't possible, there should still be an option of copying
+							the code into the current page's code. Another reason this wasn't done before was
+							because there was no way of knowing when an xmi had changed (in order to reload it),
+							if the code was just copied in verbatim. I think this too can be solved with creative
+							code. When the page is included (in this special way) it can be put in an if block
+							which checks that files mtime. <BR>
+							<FONT COLOR="#880000">Each page object could contain an array of files (or other
+							expiry means) which would invalidate the cache if <I>any</I> failed an mtime test.
+							</FONT>
+							<LI>Would this require a two-pass parsing approach? <BR>
+							<FONT COLOR="#880000">I don't believe so. </FONT>
+						</UL>
+					</TD>
+				</TR>
+				<TR>
+					<TD WIDTH="24%">There should be a TAG (non-perl) syntax for doing includes and passing parameters
+						to includes.</TD>
+					<TD WIDTH="76%">SEE XPP TAGS</TD>
+				</TR>
+				<TR>
+					<TD WIDTH="24%">Included files should be cached once per process, not once per include.</TD>
+					<TD WIDTH="76%">
+						<P><B>Assertions:</B>
+						<UL>
+							<LI>Each XPP xpml or xmi will be stored in global memory with a timestamp. Each time
+							someone or a page requests another xpml object it should look in this global memory
+							space. 
+						</UL>
+						<P>
+					</TD>
+				</TR>
+				<TR>
+					<TD WIDTH="24%">&nbsp;</TD>
+					<TD WIDTH="76%">&nbsp;</TD>
+				</TR>
+				<TR>
+					<TD COLSPAN="2" BGCOLOR="#BBBBBB">
+						<P ALIGN="CENTER"><B>XPP Tags</B>
+					</TD>
+				</TR>
+				<TR>
+					<TD WIDTH="24%">There should be a way of executing of using TAGS instead of pure perl to get things
+						done in XPP.</TD>
+					<TD WIDTH="76%">
+						<P><B>Assertions:</B>
+						<UL>
+							<LI>Tags need to be extensible, ie. There needs to be an easy way of adding tag functions.
+							<LI>When a new tag is created, there should be a way of telling XPP what keynames
+							are required for that tag.
+							<LI>tags map to actual methods (which can overloaded).
+							<LI>Project Specific modules for defining tags
+						</UL>
+						<P><B>Questions:</B>
+						<UL>
+							<LI>Ask XPML authors what they're common tasks are.
+						</UL>
+					</TD>
+				</TR>
+				<TR>
+					<TD WIDTH="24%">Using TAGS should not slow down execution.</TD>
+					<TD WIDTH="76%">
+						<P><B>Assertions</B>
+						<UL>
+							<LI>The parser will just replace the tags with valid perl so there would be no difference
+							using or not using the tags.
+						</UL>
+					</TD>
+				</TR>
+				<TR>
+					<TD WIDTH="24%">Tags should be XML compliant.</TD>
+					<TD WIDTH="76%">
+						<P><FONT COLOR="#000000"><B>Assertions</B></FONT>
+						<UL>
+							<LI><FONT COLOR="#000000">Even if we can not use the XML parser we should make the
+							tags as XML compliant as possible for the future. <BR>
+							</FONT><FONT COLOR="#880000"><NOBR></FONT><FONT COLOR="#000000">&lt;XPP <I>TAG</I>
+							ARG1=&quot;VALUE&quot; ARG2=&quot;VALUE&quot; /&gt;</FONT><FONT COLOR="#880000"></NOBR></FONT><FONT
+							COLOR="#000000"> </FONT>
+						</UL>
+					</TD>
+				</TR>
+				<TR>
+					<TD WIDTH="24%">There still needs to be a way to embed Perl in tags.</TD>
+					<TD WIDTH="76%">
+						<P><B>Assertions</B>
+						<UL>
+							<LI>The XML compatable syntax used for TAGS will probably not be best for just embedding
+							perl in.
+							<LI>&lt;XPP&gt; CODE... &lt;/XPP&gt;
+						</UL>
+						<P><B>Questions</B><FONT COLOR="#880000"> </FONT>
+					</TD>
+				</TR>
+				<TR>
+					<TD WIDTH="24%">There still needs to be a way of printing perl within tags.</TD>
+					<TD WIDTH="76%">
+						<P><B>Assertions</B>
+						<UL>
+							<LI>Same considerations as above.
+							<LI>&lt;XPR&gt; PRINT &lt;/XPR&gt;
+							<LI>Print does not need a semicolon.
+						</UL>
+						<P><B>Questions</B>
+					</TD>
+				</TR>
+				<TR>
+					<TD WIDTH="24%">Query Param Tags</TD>
+					<TD WIDTH="76%">
+						<P><B>Assertions<BR>
+						</B>Need tags for the following:
+						<UL>
+							<LI>Getting query params.
+							<LI>Checking for the existence of Query Params.
+							<LI>Testing the value of query params. 
+						</UL>
+						<P><B>Questions</B>
+						<UL>
+							<LI>What other query operations should we make tags for? 
+							<LI><FONT COLOR=#0005F0>Do we really need tags? Query params are most useful inside PRINTs or conditionals.  Should be just a built-in method.</FONT>
+						</UL>
+					</TD>
+				</TR>
+				<TR>
+					<TD WIDTH="24%">Loop Tags</TD>
+					<TD WIDTH="76%">
+						<P><B>Assertions<BR>
+						</B>Need tags for the following:
+						<UL>
+							<LI>Looping through arrays
+							<LI>Looping through closures (Carbon query objects) 
+							<LI>An easy way of displaying X of X objects on a page with next and previous buttons.
+							<UL>
+								<LI>Initialization of state data based on query object
+								<LI>Data (Carbon) changes to handle starting at X
+								<LI>Navigation output generated from initialized state data
+							</UL>
+							<LI>Checking to make sure an object is an object.
+							<LI>There should be a way, with one set of opening and closing tags to, go itterate through 
+							a carbon query object, checking refs as it goes. (Wait for Carbon::query
+							objects).
+						</UL>
+						<P><B>Questions</B>
+						<UL>
+							<LI>Restrict the number of iterations of a loop
+							<LI>What other loop operations should we make tags for?
+						</UL>
+					</TD>
+				</TR>
+				<TR>
+					<TD WIDTH="24%">Objects</TD>
+					<TD WIDTH="76%">
+						<P><B>Assertions<BR>
+						</B>Need tags for the following:
+						<UL>
+							<LI>Calling methods against the APP object and getting their return.
+							<LI>Printing methods (vars) of objects.
+							<NOBR><FONT COLOR="#000044"> &lt;XPP OBJ=&quot;$a&quot; ATTR=&quot;name&quot; /&gt;</FONT></NOBR>
+							<LI>listing objects... There needs to be a standard way of getting and generating
+							a list of objects, be it an HTML linked list, a scrolling list, a popup menu etc...
+							<LI>Printing methods against the app object. 
+						</UL>
+						<P><B>Questions</B>
+						<UL>
+							<LI>What other object operations should we make tags for?
+						</UL>
+					</TD>
+				</TR>
+				<TR>
+					<TD WIDTH="24%">Other</TD>
+					<TD WIDTH="76%">
+						<P><B>Assertions<BR>
+						</B>Need tags for the following:
+						<UL>
+							<LI>FLOW CONTROL if statements... (not sure about this one)
+							<LI>creating vars, setting vars (???)
+							<LI>Shifting variables in (at the top of xmi's)
+							<LI>xincludes
+							<LI>iterative xinclude (given a list and an xinclude it will xinclude once for each
+							item in the list) <FONT COLOR="#880000"><NOBR></FONT>
+							<FONT COLOR="#000044">&lt;XPP INCLOOP=&quot;inc.xmi&quot; ON=&quot;$query&quot; /&gt;</FONT></NOBR>
+						</UL>
+						<P><B>Questions</B>
+						<UL>
+							<LI>What other operations should we make tags for?
+						</UL>
+					</TD>
+				</TR>
+				<TR>
+					<TD WIDTH="24%">Comment</TD>
+					<TD WIDTH="76%">
+						<P><B>Assertions</B>
+						<UL>
+							<LI>Comment tag.. tag should have opening and closing which says anything in between
+							should be ignored by the parser. This is important when commenting out code so the
+							code doesn't show up in the outputted HTML. 
+							<LI><NOBR><FONT COLOR="#000000">&lt;XPPCOMMENT&gt;
+							... &lt;/XPPCOMMENT&gt;</FONT></NOBR>
+							<LI><FONT COLOR="#000000">This will need to balanace tag start and end characters
+							(&lt; and &gt;), and end on a balanced XPPCOMMENT tag. This will allow for commenting
+							of code that zero <I>or more</I> XPPCOMMENT tags.</FONT>
+						</UL>
+					</TD>
+				</TR>
+				<TR>
+					<TD WIDTH="24%">Form</TD>
+					<TD WIDTH="76%">
+						<P><B>Assertions</B>
+						<UL>
+							<LI>Need tags for the following:
+							<UL>
+								<LI>INPUT Tags
+								<LI>SELECT Tags
+								<LI>Begin/End Form
+							</UL>
+							<LI>XPML authors should be able to send other key value pairs to form tags which
+							just get passed through to the HTML. 
+							<LI>There needs to be a way for the XPML author to specify standard validation information
+							per form field. They should be able to specify multiple validation params per form
+							field.
+							<LI>XPP Form tags should know to populate themselves with whats in the query object
+							unless overridden. 
+							<LI>We should use the HTML_* methods from Chromium to make creating these dynamic
+							forms easier. Should we move those HTM_ methods to a library outside of Chromium
+							to be used by all the modules. 
+							<LI>For SELECT loops there should be an easy way of passing an array or Carbon closure
+							or query object to a SELECT loop to have it generated for them. <BR>
+							<FONT COLOR="#000044">&lt;XPP SELECT MULTIPLE=&quot;yes&quot;
+							SIZE=&quot;5&quot; TITLE=&quot;Choose One... Please&quot; FROM=&quot;$query&quot;
+							 NAME=&quot;title&quot; VALUE=&quot;id&quot;  /&gt;</FONT>
+							<LI>For VALIDATION there should be some standard validation items the XPML author
+							can use, like ISDATE or ISNOTNULL, but there needs to be a flexible system for adding
+							VALIDATION CONSTRAINTS. The XPML author should NOT be assumed to know these things
+							though, so there needs to be a way for XPP, through introspection into the Display
+							objects to gain information about how a certain field wants itself to be validated.
+							 XPP could only do the validation itself using JavaScript since it won't know where
+							they are submitting to.
+							<LI>The above makes me believe we should standardize the get_ and list_objects methods.
+							XPP should be able to look through the document to find out what 'vars' of each object
+							they will be printing and make sure the correct vars are retrieved in the select
+							for that object. <FONT COLOR="#000000"> A one pass parsing phase would collect information
+							on which fields will be used, and in post-parsing modify the fields through a reference
+							to the fields array which resides in the XPP page object's closure. </FONT>
+						</UL>
+						<P><B>Questions</B>
+						<UL>
+							<LI>What other form tags should we make xpml tags for?
+							<LI>Is there a way we could have the lazy XPML author surround an entire form with
+							begining and ending XPML tags and have XPP assume each form tag in between is a dynamic
+							form tag. IE. assuming there was an &lt;XPP input...&gt; tag we would let the XPML
+							author do &lt;XPP FORMBEGIN&gt; &lt;INPUT TYPE...&gt;&lt;/FORMEND&gt; and it would
+							assume or translate that &lt;INPUT into &lt;XPP INPUT&gt;
+						</UL>
+					</TD>
+				</TR>
+				<TR>
+					<TD WIDTH="24%">Filter Tags</TD>
+					<TD WIDTH="76%">
+						<P><B>Assertions:</B>
+						<UL>
+							<LI>The idea is to be able to have &lt;FILTERTAG&gt;content&lt;/FILTERTAG&gt; and
+							you could somehow change whats between the tags with the filter.... Is it too crazy?
+						</UL>
+					</TD>
+				</TR>
+				<TR>
+					<TD COLSPAN="2" BGCOLOR="#BBBBBB">
+						<P ALIGN="CENTER"><B>Caching</B>
+					</TD>
+				</TR>
+				<TR>
+					<TD WIDTH="24%">XPP should be able to cache content in a flexible manner.</TD>
+					<TD WIDTH="76%">
+						<P><B>Assertions:</B>
+						<UL>
+							<LI>There should be a DBI/DBD model for choosing how the data is stored, retrieved,
+							and deemed to be expired.<BR>
+							<BR>
+							The following suggested Store's should be supported
+							<UL>
+								<LI>File
+								<LI>dbFile
+								<LI>Memory
+								<LI>DB
+							</UL>
+							<LI><FONT COLOR="#000000">Caching needs it's own table to associate caches (name/group
+							paris) to the appropriate Store and expiry</FONT>
+							<LI><FONT COLOR="#000000">Most expiries would need only the name and group of the
+							cache. Other information might be needed as implementations of new expiries are added.
+							</FONT>
+							<LI><FONT COLOR="#000000">By using a cache tag in which the author would specify
+							store and expiry types, the caching code in XPP should be able to handle everything.
+							 </FONT><FONT COLOR="#000044">&lt;XPP CACHE NAME=&quot;topheader&quot; GROUP=&quot;nav&quot;
+							STORE=&quot;DB&quot; EXPIRE=&quot;time&quot; TIME=&quot;5m&quot;&gt;</FONT><FONT
+							COLOR="#880000"> ... </FONT><FONT COLOR="#000044">&lt;/XPP CACHE&gt;</FONT><FONT
+							COLOR="#880000"> </FONT>
+						</UL>
+						<P><B>Questions</B>
+					</TD>
+				</TR>
+				<TR>
+					<TD WIDTH="24%">There needs to be a flexible way for checking to see if a cache has expired.</TD>
+					<TD WIDTH="76%">
+						<P><B>Assertions:</B>
+						<UL>
+							<LI><FONT COLOR="#000000">XPP::Cache would inherently create, modify, and remove
+							both Store and Expiry entities as necessary (both Store and Expiry parameters would
+							be passed to XPP::Cache methods). </FONT><B></B>
+							<LI>The following suggested Expiry's should be supported:
+							<UL>
+								<LI>Time
+								<LI><FONT COLOR="#000000">Duration</FONT>
+								<LI>database flag
+								<LI>database timestamp
+								<LI>file non-existant
+								<LI>file date old
+							</UL>
+						</UL>
+						<P><B>Questions:</B>
+					</TD>
+				</TR>
+				<TR>
+					<TD WIDTH="24%">There needs to be a simple way of populating and re-populated named caches.</TD>
+					<TD WIDTH="76%">
+						<P><B>Assertions:</B>
+						<UL>
+							<LI><FONT COLOR="#000000">XPP::Cache table rows could have a flag for a cache-transaction
+							in progress. </FONT><B></B>
+						</UL>
+						<P><B>Notes<BR>
+						</B>When a cache is deemed to be expired, someone has to repopulate it. In an ideal
+						world, the first person to see that it was expired would begin a 'transaction' somehow
+						to repopulate it... subsequent requests that occur while the first request is being
+						processed will see that its expired, see that they can't repopulate it because it
+						is locked and just generate the dynamic content themselves. Once the process repopulating
+						the cache is done, it has to reset the expiry and unlock the cache. <BR>
+						Obviously this is easier to do with database caches then other caches. It leads me
+						to believe we need to have a suggested Store and Expiry architecture that has to
+						deal with issues such as repopulating and locking. 
+					</TD>
+				</TR>
+				<TR>
+					<TD WIDTH="24%">There needs to be a flexible way of deciding WHAT to cache.</TD>
+					<TD WIDTH="76%">
+						<P><B>Assertions<BR>
+						<BR>
+						Questions<BR>
+						</B>Possible places to specify what to cache:
+						<UL>
+							<LI>Top of page to be cached.
+							<LI>In xinclude
+							<LI>surounding content.
+						</UL>
+						<P>Ideally you would be able to define the cache in an xinclude tag, or maybe just
+						at the top of an xincluded page. It would also be nice to be able to enclose text
+						and perl on a given XPML page with other tags which tell it to cache whats in between,
+						like (bad example)...<BR>
+						&lt;?xpp start_cach(options)?&gt;<BR>
+						stuff, stuff, &lt;?=morestuff?&gt;<BR>
+						&lt;?xpp end_cache(options)?&gt;
+					</TD>
+				</TR>
+				<TR>
+					<TD WIDTH="24%">&nbsp;</TD>
+					<TD WIDTH="76%">&nbsp;</TD>
+				</TR>
+				<TR>
+					<TD COLSPAN="2" BGCOLOR="#BBBBBB">
+						<P ALIGN="CENTER"><B>Debugging</B>
+					</TD>
+				</TR>
+				<TR>
+					<TD WIDTH="24%">Script Checker</TD>
+					<TD WIDTH="76%"><B>Assertions:<BR>
+						</B>There should be a script checker which can go through pages and look for common
+						errors. Common errors include, no ref checking, global vars, etc..</TD>
+				</TR>
+				<TR>
+					<TD WIDTH="24%">Source Viewer</TD>
+					<TD WIDTH="76%">
+						<P><B>Assertions:</B>
+						<UL>
+							<LI>Ability to see the source code for an entire XPML with its XMIs.
+						</UL>
+					</TD>
+				</TR>
+				<TR>
+					<TD WIDTH="24%">Line Numbers</TD>
+					<TD WIDTH="76%"><B>Questions:<BR>
+						</B>There should be a way of knowing what true line number an error occured on. <BR>
+						<FONT COLOR="#880000">Having errors report accurate line numbers is impossible. </FONT></TD>
+				</TR>
+				<TR>
+					<TD WIDTH="24%">Clean Errors</TD>
+					<TD WIDTH="76%">&nbsp;</TD>
+				</TR>
+				<TR>
+					<TD WIDTH="24%">Trace Mode</TD>
+					<TD WIDTH="76%">&nbsp;</TD>
+				</TR>
+				<TR>
+					<TD COLSPAN="2" BGCOLOR="#BBBBBB">
+						<P ALIGN="CENTER"><B>Other</B>
+					</TD>
+				</TR>
+				<TR>
+					<TD WIDTH="24%">Sub-request support</TD>
+					<TD WIDTH="76%"><B>Questions<BR>
+						</B>Possibly for Java Servlet Support.  This might sound completely insane, but I think there is a way to 'include' java
+						servlets using Apache. That would be an pretty usefull tool.</TD>
+				</TR>
+				<TR>
+					<TD WIDTH="24%">&nbsp;</TD>
+					<TD WIDTH="76%">&nbsp;</TD>
+				</TR>
+			</TABLE>
+		</TD>
+	</TR>
+</TABLE>
+
+
+</BODY>
+
+</HTML>

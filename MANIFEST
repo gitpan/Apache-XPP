@@ -1,0 +1,11 @@
+COPYING
+MANIFEST
+Makefile.PL
+conf/xpp.conf.template
+lib/Apache/XPP.pm
+lib/Apache/XPP/Cache.pm
+lib/Apache/XPP/PreParse.pm
+lib/Apache/XPP/Cache/Store.pm
+lib/Apache/XPP/Cache/Expiry.pm
+lib/Apache/XPP/Cache/Store/File.pm
+lib/Apache/XPP/Cache/Expiry/Duration.pm
