@@ -12,7 +12,13 @@ lib/Apache/XPP/Cache/Expiry.pm
 lib/Apache/XPP/Cache/Expiry/Duration.pm
 lib/Apache/XPP/Cache/Store.pm
 lib/Apache/XPP/Cache/Store/File.pm
+lib/Apache/XPP/Inline.pm
 lib/Apache/XPP/PreParse.pm
 man/xppcache.pod
 man/xpptagtut.pod
 man/xpptut.pod
+t/file.t
+t/inline.t
+t/test_run.xpml
+t/test_print.xpml
+t/source.t

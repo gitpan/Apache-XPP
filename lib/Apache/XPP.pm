@@ -1,7 +1,7 @@
 # Apache::XPP
 # -------------
-# $Revision: 1.28 $
-# $Date: 2002/01/16 22:06:46 $
+# $Revision: 1.32 $
+# $Date: 2002/02/15 05:00:01 $
 # -----------------------------------------------------------------------------
 =head1 NAME
 
@@ -33,18 +33,22 @@ use strict;
 use vars qw( $AUTOLOAD $debug $debuglines );
 
 BEGIN {
-
-    $Apache::XPP::REVISION       = (qw$Revision: 1.28 $)[-1];
-    $Apache::XPP::VERSION        = '2.01';
-
+    $Apache::XPP::REVISION       = (qw$Revision: 1.32 $)[-1];
+    $Apache::XPP::VERSION        = '2.02';
 }
 
 use Apache::XPP::Cache;
 use Apache::XPP::PreParse;
 
+if ($INC{ 'Apache.pm' }) {
+	eval q{
+		use Apache();
+		use Apache::Constants qw(:response);
+	};
+}
+
+
 use Carp;
-use Apache();
-use Apache::Constants qw(:response);
 use File::stat;
 use FileHandle;
 use HTTP::Request;
@@ -109,11 +113,11 @@ replace the value of the global L<"$Apache::XPP::main_class"> with your class na
 
 sub handler ($$) {
 	my $class	= shift;
-    my $r		= shift;
+	my $r		= shift;
 	
 	# handle things other than GET or POST gracefully here
 	unless ($r->method eq 'GET' || $r->method eq 'POST') {
-		return NOT_IMPLEMENTED;
+		return NOT_IMPLEMENTED();
 	}
 
 	# Prevent browser caching
@@ -121,21 +125,31 @@ sub handler ($$) {
 
 	# Get the file and build a new XPP object
 	warn "\nxpp: handler called" . ($debuglines ? '' : "\n") if ($debug);
-	my $xpp	= $class->new( { filename => $r->filename, r => $r, is_main => 1 } );
-
+	
+	my $xpp	= $class->new( {
+							filename			=> $r->filename,
+							r					=> $r,
+							is_main				=> 1,
+							server_name			=> $r->get_server_name,
+							XPMLHeaders			=> $r->dir_config( 'XPMLHeaders' ),
+							XPMLFooters			=> $r->dir_config( 'XPMLFooters' ),
+							XPPIncludeDir		=> $r->dir_config( 'XPPIncludeDir' ),
+							XPPVHostIncludeDir	=> $r->dir_config( 'XPPVHostIncludeDir' )
+						} );
+	
 	if (ref($xpp)) {
 		eval {
 			$xpp->run;
 		};
 		if ($@) {
 			warn "Bad things happened. XPP page didn't compile: $@";
-			return SERVER_ERROR;
+			return SERVER_ERROR();
 		}
 	} else {
 		$r->log_error("[client " . $r->get_remote_host . "] [Apache::XPP] File not accessible: " . $r->filename());
-		return NOT_FOUND;
+		return NOT_FOUND();
 	}
-	return OK;
+	return OK();
 } # END method handler
 
 =item C<new> ( \%params | $filename )
@@ -174,7 +188,10 @@ sub new {
 		my $data	= shift;
 		$params		= ref($data) ? \%{ $data } : { filename => $data };
 	}
-
+	
+	$params->{ 'server_name' }	= 'localhost' unless exists($params->{ 'server_name' });
+	$params->{ 'XPPIncludeDir' }	||= exists($ENV{'XPPIncludeDir'}) ? $ENV{'XPPIncludeDir'} : ($proto->XPPIncludeDir or './');
+	
 	my $specifier;
 	# $specifier is the unique hash key to store the XPP object in the %cache. XPP objects representing
 	# files will have the specifier "file:$filename", while XPP objects representing XPP source will use
@@ -217,18 +234,20 @@ sub new {
 	my $source		= ( exists $params->{'source'} )
 						? $params->{ 'source' }
 						: $self->load( $params->{'filename'} );
-
+	
 	my $r = $self->r();
 	### Below corresponds to bugfix in r() regarding subrequests
 	$r->register_cleanup(sub { delete $self->{'r'}; }) if (ref $params->{'r'});
 
 	#We want to be caching these too. So there aren't conflicts, I'm going to use the header:
 	#and :footer cache specifier.
-	my ($header, $footer);
+	my ($header, $footer)	= ('') x 2;
 	# This code is essentially the same for $header and $footer, so we use a small loop
 	foreach ({XPMLHeaders => \$header}, {XPMLFooters => \$footer}) {
 		my($dirconf, $headorfoot) = %{$_};
-		foreach my $filename ( split( ':', $r->dir_config($dirconf) ) ) {
+		
+		my @files	= ref($r) ? split( ':', $self->$dirconf() ) : ();
+		foreach my $filename (@files) {
 			my ($hfxpp, $hfcache);
 			if ($hfcache = $cache{ (($dirconf eq 'XPMLHeaders') ? 'header:' : 'footer:') .$filename }) {
 				if ($proto->mtime( $filename ) > $hfcache->compiletime) {
@@ -337,11 +356,21 @@ sub parse {
  		}
 	}
 	
-	my $codesrc			= "sub {\npackage Apache::XPP::Page;\nmy \$xpp = shift;\n"
-						. "\$xpp->r()->content_type('" . $self->r()->content_type() . "');\n"
-						. "#line 1 " . $self->filename . "\n"
-						. join('', (@codesrc))
-						. "\n}";
+	my $type			= (ref($self->r()) ? $self->r()->content_type() : '');
+	my $filename		= defined($self->filename()) ? $self->filename() : '';
+	my $joined			= join('', (@codesrc));
+	my $codesrc			= qq{
+		sub {
+			package Apache::XPP::Page;
+			my \$xpp = shift;
+			if (ref(\$xpp->r())) {
+				\$xpp->r()->content_type( "${type}" );
+			}
+#line 0 ${filename}
+			${joined}
+		}
+	};
+
 	warn "xpp: source:\n" . $codesrc . ($debuglines ? '' : "\n") if ($debug >= 2);
 
 	my $code			= eval $codesrc;
@@ -395,8 +424,8 @@ sub returnrun {
 	$self->run( @_ );
 	select( $fh );
 	
-	my $content	= $tieobj->content;
-	untie(*XPP_TIE);
+	my $content	= $tieobj->content();
+#	untie(*XPP_TIE);
 	return $content;
 } # END method returnrun
 
@@ -415,10 +444,11 @@ sub load {
 	my $counter		= shift;	# don't recurse
 	warn "xpp: loading source ($filename)" . ($debuglines ? '' : "\n") if ($debug);
 	
-	if (substr($filename,0,1) eq '/') {
+	if ((substr($filename,0,1) eq '/') or ((substr($filename,0,2) eq './') and ($counter))) {
 		my $fh = new FileHandle;
 		warn "xpp:\tattempting to load $filename" . ($debuglines ? '' : "\n") if ($debug);
-		if (($filename =~ m{^(/[/\-\w\.]+)$}) && ($fh->open($1))) {
+#		if (($filename =~ m{^(/[/\-\w\.]+)$}) && ($fh->open($1))) {
+		if ($fh->open($filename)) {
 			local($/)	= undef;
 			return <$fh>;
 		} else {
@@ -437,8 +467,9 @@ sub load {
 			return undef;
 		}
 	} else {
-		warn "xpp:\tattempting to qualify filename, and load again '${filename}'" . ($debuglines ? '' : "\n") if ($debug);
-		return $self->load( $self->qualify( $filename ), 1 ) unless ($counter);
+		my $qualified	= $self->qualify( $filename );
+		warn "xpp:\tqualifying filename, and attempting to load '${qualified}'" . ($debuglines ? '' : "\n") if ($debug);
+		return $self->load( $qualified, 1 ) unless ($counter);
 		return undef;
 	}
 } # END method load
@@ -504,7 +535,8 @@ sub qualify {
 		warn "xpp:\tfilename: $filename" . ($debuglines ? '' : "\n") if ($debug >= 2);;
 		if ($filename =~ m{^([/\-\w\.]+)$}) {
 			my $r = $self->r();
-			return join('/', $self->incdir($r),$1);
+			my $incdir = $self->incdir($r);
+			return ($incdir) ? join('/', $incdir, $1) : $1;
 		}
 	}
 	
@@ -526,18 +558,18 @@ sub incdir {
 	#Not cleaning up for now, why not cache for the life of a process.
 	#$r->register_cleanup(sub {undef $Apache::XPP::_cache::incdir}) unless (defined $Apache::XPP::_cache::incdir);
 	my $incdir;
-	unless ( $incdir = $Apache::XPP::_cache::incdir{ $r->get_server_name } ) {
-		if ($incdir = $r->dir_config('XPPVHostIncludeDir')) {
+	unless ( $incdir = $Apache::XPP::_cache::incdir{ $self->server_name } ) {
+		if ($incdir = $self->XPPVHostIncludeDir) {
 			my @parts = split(/\./, $r->get_server_name);
  			my($segment, $replacement, $startpt, $endpt);
  			while ($incdir =~ m/\%([p\d\+\-\.]+)/) {
  				$segment = $1;
  				if ($segment eq 'p') {
- 					$incdir =~ s/\%p/$r->get_server_port/e;
+ 					$incdir =~ s/\%p/$self->server_name/e;
  					next;
  				}
  				if ($segment eq '0') {
- 					$incdir =~ s/\%0/$r->get_server_name/e;
+ 					$incdir =~ s/\%0/$self->server_name/e;
  					next;
  				}
  				if ($segment =~ /^-(\d)/) {
@@ -555,15 +587,23 @@ sub incdir {
  				$incdir =~ s/\%$segment/$replacement/;
  			}
 		} else {
-			$incdir = $r->dir_config('XPPIncludeDir');
+			$incdir = $self->XPPIncludeDir();
 		}
-		$incdir = ($incdir =~ m#^/#) ? $incdir : $r->server_root_relative($incdir);
+		
+		warn "XPPIncludeDir => $incdir" if ($debug);
+		
+		if (ref($r)) {
+			$incdir = ($incdir =~ m#^/#) ? $incdir : $r->server_root_relative($incdir);
+			warn "XPPIncludeDir => $incdir" if ($debug);		
+		}
+		
 		$incdir =~ s#/$##;
 		$incdir =~ /^(.*)$/;
-		$incdir =  $Apache::XPP::_cache::incdir{$r->get_server_name} = $1;
+		$incdir =  $Apache::XPP::_cache::incdir{$self->server_name} = $1;
+		warn "XPPIncludeDir => $incdir" if ($debug);		
 	}
-	return $incdir
-		
+	
+	return $incdir	
 } # END method incdir
 
 
@@ -575,11 +615,10 @@ C<include>, and C<xinclude>.
 =cut
 sub docroot {
 	my $self	= shift;
-	my $docroot	= '';
-	$docroot		||= ref($self->r) ? $self->r->document_root : '';
-	$docroot		||= '/';
+	my $docroot	= ref($self->r) ? $self->r->document_root : '';
+	$docroot	||= '/';
 	
-	$docroot			=~ /^([\/.\w-]*)$/;
+	$docroot	=~ /^([\/.\w-]*)$/;
 	return $1;
 } # END method docroot
 
@@ -598,8 +637,12 @@ sub r {
 	} elsif ( ref($proto) && ref($proto->{ 'r' }) ) {
 		return $proto->{ 'r' };
 	} else {
-		$r = ( ref($proto)? ( $proto->{ 'r' } = Apache->request ) : return Apache->request ) if ($INC{ 'Apache.pm' }); # calling C<request> if the Apache package hadn't been loaded would cause an error
+	 	# calling C<request> if the Apache package hadn't been loaded would cause an error
+		if ($INC{ 'Apache.pm' }) {
+			$r = ( ref($proto) ? ( $proto->{ 'r' } = Apache->request ) : return Apache->request )
+		}
 	}
+	
 	(ref $r) || return undef;
 	### This prevents subrequests from using the wrong request object.  Also in new()
 	$r->register_cleanup(sub { delete $proto->{'r'}; });
@@ -637,6 +680,41 @@ sub xinclude {
 	my $x			= $self->new( { filename => $self->qualify( $filename ) } );
 	$x->run( @options );
 } # END method xinclude
+
+sub XPMLHeaders {
+	my $self	= shift;
+	my $data	= ref($self) ? $self->{ 'XPMLHeaders' } : undef;
+	$data		||= ref($self->r) ? $self->r->dir_config( 'XPMLHeaders' ) : undef;
+	return $data;
+}
+
+sub XPMLFooters {
+	my $self	= shift;
+	my $data	= ref($self) ? $self->{ 'XPMLFooters' } : undef;
+	$data		||= ref($self->r) ? $self->r->dir_config( 'XPMLFooters' ) : undef;
+	return $data;
+}
+
+sub XPPIncludeDir {
+	my $self	= shift;
+	my $data	= ref($self) ? $self->{ 'XPPIncludeDir' } : undef;
+	$data		||= ref($self->r) ? $self->r->dir_config( 'XPPIncludeDir' ) : undef;
+	return $data;
+}
+
+sub XPPVHostIncludeDir {
+	my $self	= shift;
+	my $data	= ref($self) ? $self->{ 'XPPVHostIncludeDir' } : undef;
+	$data		||= ref($self->r) ? $self->r->dir_config( 'XPPVHostIncludeDir' ) : undef;
+	return $data;
+}
+
+sub server_name {
+	my $self	= shift;
+	my $data	= ref($self) ? $self->{ 'server_name' } : undef;
+	$data		||= ref($self->r) ? $self->r->get_server_name : 'localhost';
+	return $data;
+}
 
 =item C<debug> ( $debuglevel [, $debuglines ] )
 
@@ -710,7 +788,7 @@ sub PRINT {
 	my $self		= shift;
 	warn "tie: caught print" . ($$debuglines ? '' : "\n") if ($$debug);
 	warn "tie:\t@_" . ($$debuglines ? '' : "\n") if ($$debug >= 2);
-	${ $self }	.= join($,, @_) . $\;
+	${ $self }	.= join($,, @_) . (defined($\) ? $\ : '');
 }
 
 
@@ -724,7 +802,7 @@ sub PRINTF {
 
 sub content {
 	my $self		= shift;
-	return \${ $self };
+	return ${ $self };
 }
 
 
@@ -737,6 +815,19 @@ __END__
 =head1 REVISION HISTORY
 
 $Log: XPP.pm,v $
+Revision 1.32  2002/02/15 05:00:01  kasei
+- fixed bugs introduced by adding Apache::XPP::Inline
+
+Revision 1.31  2002/02/15 02:39:31  kasei
+- merged 1.30 and 1.28 conflicts
+
+Revision 1.30  2002/02/15 02:17:06  kasei
+- Fixed quoting bug with $r->content_type
+- Changed use constant to use subs for Apache constants when in a non m_p environment
+
+Revision 1.29  2002/02/01 08:22:12  kasei
+Reduced dependance on Apache (still waiting on testing to confirm nothing broke)
+
 Revision 1.28  2002/01/16 22:06:46  kasei
 - Updated README to mention version 2.01
 - POD typo fix in XPP.pm
